@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var tpl *template.Template
@@ -27,7 +29,7 @@ func login(w http.ResponseWriter, req *http.Request){
 	if req.Method == http.MethodPost {
 		fmt.Print(req.FormValue(`email`))
 		nu.Email = req.FormValue("email")
-		nu.Password = req.FormValue("password")
+		nu.Password = bcrypt.GenerateFromPassword([]byte(req.FormValue("password")))
 	}
 	tpl.ExecuteTemplate(w, "login.gohtml", nu)
 }
