@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -12,7 +12,7 @@ var tpl *template.Template
 
 type user struct {
 	Email string
-	Password string
+	Password []byte
 }
 
 func init(){
@@ -27,9 +27,12 @@ func main (){
 func login(w http.ResponseWriter, req *http.Request){
  	var nu user
 	if req.Method == http.MethodPost {
-		fmt.Print(req.FormValue(`email`))
 		nu.Email = req.FormValue("email")
-		nu.Password = bcrypt.GenerateFromPassword([]byte(req.FormValue("password")))
+		password, err := bcrypt.GenerateFromPassword([]byte(req.FormValue("password")), bcrypt.MinCost)
+		if err != nil {
+			log.Fatal(err)
+		}
+		nu.Password = password
 	}
 	tpl.ExecuteTemplate(w, "login.gohtml", nu)
 }
