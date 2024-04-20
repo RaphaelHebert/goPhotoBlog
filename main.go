@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	"html/template"
@@ -98,8 +99,12 @@ func signup(w http.ResponseWriter, req *http.Request){
 			return
 		}
 		// save in db
-		
-
+		err = NewUser(nu)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// TODO create session 
+		http.Redirect(w, req, "/index", http.StatusSeeOther)
 	}
 	tpl.ExecuteTemplate(w, "signup.gohtml", nil)
 }
