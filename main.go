@@ -6,37 +6,36 @@ import (
 	"os"
 
 	"html/template"
-	"log"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var db *sql.DB
 var tpl *template.Template
-var udb map[string]user
+var err error
 
 type user struct {
+	Id int
 	Email string
-	Password []byte
+	Password string
+	Username string
 }
-
-
 
 func init(){
 	// get templates
 	tpl = template.Must(template.ParseGlob("templates/*"))
+	
 	// connect to db
-    DBept := os.Getenv("DB_ENDPOINT")
+	DBept := os.Getenv("DB_ENDPOINT") 
 	DBpass := os.Getenv("DB_PASSWORD")
 	DBname := os.Getenv("DB_NAME")
-	dataSourceName := fmt.Sprint("admin:%s@tcp(%s)/%s?charset=utf8", DBept, DBpass, DBname)
-	db, err := sql.Open("mysql", dataSourceName)
-	CheckError(err, "Could not open DB")
-	defer db.Close()
+	dataSourceName := fmt.Sprintf("admin:%s@tcp(%s)/%s?charset=utf8", DBpass, DBept, DBname)
+	db, err = sql.Open("mysql", dataSourceName)
+	CheckError(err)
+	//defer db.Close()
 	err = db.Ping()
-	CheckError(err, "DB does not respond")
+	CheckError(err)
 }
 
 func main (){
@@ -46,33 +45,32 @@ func main (){
 }
 
 func login(w http.ResponseWriter, req *http.Request){
- 	var nu user
 	data := struct{
-		User user
-		Login bool
-	 }{
-		nu,
-		false,
-	 }
+		u user
+		WrongLogin bool
+	}{}
+	nu := user{}
 	if req.Method == http.MethodPost {
-		data.User.Email = req.FormValue("email")
-		data.Login = false
-		password, err := bcrypt.GenerateFromPassword([]byte(req.FormValue("password")), bcrypt.MinCost)
+		nu.Email = req.FormValue("email")
+		if req.FormValue("email") == "" || req.FormValue("password") == "" {
+			http.Error(w, "Email and Password do not match", http.StatusUnauthorized)
+			return
+		}
+		err = GetUser(&nu)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 		}
-
-		data.User.Password = password
-		u, ok := udb[data.User.Email];
-		if ok {
-			if err := bcrypt.CompareHashAndPassword(u.Password, data.User.Password); err == nil {
-				tpl.ExecuteTemplate(w, "index.gohtml", data)
-				return
-			}
+		itTrue := req.FormValue("password") == nu.Password // bcrypt.CompareHashAndPassword(nu.Password,[]byte(req.FormValue("password")))
+		nu.Password = ""
+		nu.Id = 0
+		if itTrue {
+			// TODO: handle with cookie and session management
+			tpl.ExecuteTemplate(w, "index.gohtml", nu)
+			return
 		}
-		data.Login = true
+		data.WrongLogin = true
 	}
-	
+	data.u = nu
 	tpl.ExecuteTemplate(w, "login.gohtml", data)
 }
 
