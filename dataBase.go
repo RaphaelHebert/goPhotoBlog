@@ -16,7 +16,6 @@ func GetUser(u *user) error {
 	defer rows.Close()
 
 	count := 0
-
 	for rows.Next() {
 		// if more than one user returned check your DB setting as email should be unique
 		if count > 0 {
@@ -25,6 +24,9 @@ func GetUser(u *user) error {
 		err := rows.Scan(&u.Id, &u.Email, &u.Username, &u.Password)
 		CheckError(err)
 		count++
+	}
+	if count == 0 {
+		return errors.New("no match")
 	}
 	return nil
 }

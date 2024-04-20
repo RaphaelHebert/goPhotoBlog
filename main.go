@@ -41,6 +41,7 @@ func init(){
 func main (){
 	http.HandleFunc("/", index)
 	http.HandleFunc("/login", login)
+	http.HandleFunc("/signup", signup)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -72,6 +73,35 @@ func login(w http.ResponseWriter, req *http.Request){
 	}
 	data.u = nu
 	tpl.ExecuteTemplate(w, "login.gohtml", data)
+}
+
+func signup(w http.ResponseWriter, req *http.Request){
+	data := struct{
+		U user
+		WrongEmail bool
+	}{}
+	nu := user{}
+	if req.Method == http.MethodPost {
+		nu.Email = req.FormValue("email")
+		nu.Password = req.FormValue("password")
+		nu.Username = req.FormValue("username")
+
+		if req.FormValue("email") == "" || req.FormValue("password") == "" || req.FormValue("username") == "" {
+			http.Error(w, "You must fill up all the fields", http.StatusUnauthorized)
+			return
+		}
+		err = GetUser(&nu)
+		if err == nil {
+			data.U = nu
+			data.WrongEmail = true
+			tpl.ExecuteTemplate(w, "signup.gohtml", data)
+			return
+		}
+		// save in db
+		
+
+	}
+	tpl.ExecuteTemplate(w, "signup.gohtml", nil)
 }
 
 func index(w http.ResponseWriter, req *http.Request){
